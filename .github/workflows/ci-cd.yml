@@ -1,0 +1,73 @@
+name: CI/CD
+on:
+  push:
+    branches-ignore:
+      - 'renovate/**'
+    paths-ignore:
+      - '.gitignore'
+      - 'CHANGELOG.md'
+      - 'LICENSE'
+      - 'README.md'
+      - 'renovate.json'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: hitcounter
+            smoke-test: |
+              docker run -d --rm -p 8080:8080 test
+              curl --retry 10 --retry-all-errors --retry-delay 1 -s localhost:8080 | grep 'Hit 1 times'
+          - image: fakesim
+            smoke-test: |
+              docker run --rm -v data:/data test | grep .
+    runs-on: ubuntu-latest
+    name: Build ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - name: Build for all platforms
+        run: docker buildx build ${{ matrix.image }} --platform linux/amd64,linux/arm64
+      - name: Smoke test
+        run: |
+          docker buildx build ${{ matrix.image }} --load --tag test
+          ${{ matrix.smoke-test }}
+
+  release:
+    needs: build
+    if: github.event_name == 'push' && github.ref_name == 'master' && !github.event.repository.fork
+    concurrency:
+      # Only one release job at a time. Strictly sequential.
+      group: release
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # all history
+      - name: Get Node Version
+        id: get-node-version
+        run: echo version=$(jq -r .engines.node package.json) >> $GITHUB_OUTPUT
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ steps.get-node-version.outputs.version }}
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Release
+        run: |
+          npm install
+          npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

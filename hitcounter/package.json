@@ -1,0 +1,14 @@
+{
+  "name": "example",
+  "version": "1.0.0",
+  "description": "Example Express WS for Docker",
+  "main": "index.mjs",
+  "scripts": {
+    "service": "node index.mjs"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "author": "gciatto",
+  "license": "ISC"
+}

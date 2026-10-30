@@ -1,0 +1,15 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>DanySK/renovate-config"
+  ],
+  "assignees": [ "gciatto" ],
+  "packageRules": [
+    {
+      "description": "Updates of what ends up in the images trigger a (patch) release, i.e. new images",
+      "matchFileNames": [ "*/Dockerfile", "*/package.json" ],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "core-deps"
+    }
+  ]
+}
