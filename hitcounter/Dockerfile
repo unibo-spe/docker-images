@@ -1,5 +1,5 @@
 # Base image, pulled from Docker Hub ("scratch" = empty image)
-FROM alpine:3.24.3
+FROM alpine:3.24.4
 # Runs a command
 RUN apk add --no-cache nodejs npm
 # Sets the working directory (created if missing)
